@@ -13,6 +13,7 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   useEffect(() => {
     startCamera();
@@ -25,15 +26,19 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
     };
   }, [stream]);
 
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
   const startCamera = async () => {
     setError(null);
     setIsInitializing(true);
+    setIsVideoReady(false);
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
     } catch (err) {
       console.error("Error accessing camera:", err);
       setError("Could not access the camera. Please check permissions and try again.");
@@ -46,22 +51,20 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
+      setIsVideoReady(false);
     }
   };
 
-  const handleQuickCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+  const handleVideoCanPlay = () => {
+    setIsVideoReady(true);
+  };
 
-    const video = videoRef.current;
-    
-    // This check ensures the video has loaded before we try to capture.
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      setError("Could not capture image. The video stream isn't fully ready yet. Please wait a moment and try again.");
-      return;
-    }
+  const handleQuickCapture = async () => {
+    if (!videoRef.current || !canvasRef.current || !isVideoReady) return;
     
     setError(null);
 
+    const video = videoRef.current;
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -121,16 +124,23 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
           autoPlay 
           playsInline 
           className="w-full h-full object-cover"
+          onCanPlay={handleVideoCanPlay}
         />
         <canvas ref={canvasRef} className="hidden" />
+        {stream && !isVideoReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+          </div>
+        )}
       </div>
       <div className="mt-8">
         <Button 
           onClick={handleQuickCapture} 
           size="lg" 
           className="rounded-full w-20 h-20 shadow-lg shadow-primary/30"
+          disabled={!isVideoReady}
         >
-          <Camera className="h-8 w-8" />
+          {isVideoReady ? <Camera className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
         </Button>
       </div>
     </div>
