@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Loader2, VideoOff } from 'lucide-react';
@@ -97,6 +96,7 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
         id: new Date().toISOString(),
         image: imageDataUrl,
         text: description,
+        createdAt: new Date().toISOString(),
       };
 
       addNote(newNote);

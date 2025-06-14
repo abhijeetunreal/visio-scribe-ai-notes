@@ -6,8 +6,9 @@ import { Note } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Camera, BookOpen, LogOut, Loader2 } from "lucide-react";
 import { useGoogleLogin } from '@react-oauth/google';
-import { UserProfile, getUser, saveUser, logout as logoutUser } from '@/lib/auth';
+import { UserProfile, getUser, saveUser, logout as logoutUser, saveAccessToken, getAccessToken } from '@/lib/auth';
 import { getNotesFromDrive, saveNotesToDrive } from "@/lib/drive";
+import { toast } from "sonner";
 
 const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
@@ -22,6 +23,10 @@ const Index = () => {
     const loggedInUser = getUser();
     if (loggedInUser) {
       setUser(loggedInUser);
+      const storedToken = getAccessToken();
+      if (storedToken) {
+        setAccessToken(storedToken);
+      }
     }
   }, []);
 
@@ -44,6 +49,7 @@ const Index = () => {
 
   const handleLoginSuccess = async (tokenResponse: any) => {
     const token = tokenResponse.access_token;
+    saveAccessToken(token);
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: {
@@ -62,12 +68,16 @@ const Index = () => {
       setAccessToken(token);
     } catch(err) {
       console.error("Failed to fetch user profile", err);
+      toast.error("Failed to log in.", { description: "Could not fetch your user profile from Google." });
     }
   };
   
   const login = useGoogleLogin({
     onSuccess: handleLoginSuccess,
-    onError: (error) => console.log('Login Failed:', error),
+    onError: (error) => {
+      console.log('Login Failed:', error);
+      toast.error("Login Failed", { description: "There was an issue signing in with Google." });
+    },
     scope: 'https://www.googleapis.com/auth/drive.appdata',
   });
   
@@ -84,6 +94,15 @@ const Index = () => {
     setNotes(newNotes);
     setView("notes");
     await saveNotesToDrive(accessToken, newNotes);
+    toast.success("Note saved!", { description: "Your new note has been saved to Google Drive." });
+  };
+
+  const deleteNote = async (noteId: string) => {
+    if (!user || !accessToken) return;
+    const newNotes = notes.filter((note) => note.id !== noteId);
+    setNotes(newNotes);
+    await saveNotesToDrive(accessToken, newNotes);
+    toast.info("Note deleted", { description: "The note has been removed from Google Drive." });
   };
 
   if (!user) {
@@ -117,7 +136,7 @@ const Index = () => {
       return <CameraView addNote={addNote} apiKey={GEMINI_API_KEY} />;
     }
     
-    return <NotesList notes={notes} />;
+    return <NotesList notes={notes} deleteNote={deleteNote} />;
   }
 
   return (

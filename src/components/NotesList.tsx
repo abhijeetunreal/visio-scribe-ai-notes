@@ -4,9 +4,10 @@ import NoteView from "./NoteView";
 
 interface NotesListProps {
   notes: Note[];
+  deleteNote: (noteId: string) => void;
 }
 
-const NotesList = ({ notes }: NotesListProps) => {
+const NotesList = ({ notes, deleteNote }: NotesListProps) => {
   if (notes.length === 0) {
     return (
       <div className="text-center flex-1 flex items-center justify-center">
@@ -18,7 +19,7 @@ const NotesList = ({ notes }: NotesListProps) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {notes.map((note) => (
-        <NoteView key={note.id} note={note} />
+        <NoteView key={note.id} note={note} deleteNote={deleteNote} />
       ))}
     </div>
   );

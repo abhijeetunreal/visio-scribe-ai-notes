@@ -27,4 +27,13 @@ export const getUser = (): UserProfile | null => {
 
 export const logout = () => {
   localStorage.removeItem('user');
+  localStorage.removeItem('accessToken');
+};
+
+export const saveAccessToken = (token: string) => {
+  localStorage.setItem('accessToken', token);
+};
+
+export const getAccessToken = (): string | null => {
+  return localStorage.getItem('accessToken');
 };
