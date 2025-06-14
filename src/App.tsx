@@ -11,7 +11,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 const queryClient = new QueryClient();
 
 // IMPORTANT: Replace with your Google Client ID from https://console.cloud.google.com/apis/credentials
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_GOES_HERE";
+const GOOGLE_CLIENT_ID = "570530219146-87vtdg9d578f79lpg49fjdcftp8ned1t.apps.googleusercontent.com";
 
 const App = () => (
   <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
