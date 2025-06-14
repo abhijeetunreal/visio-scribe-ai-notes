@@ -18,6 +18,8 @@ const Index = () => {
   const [notes, setNotes] = useState<Note[]>([]);
   const [view, setView] = useState<"camera" | "notes" | "calendar">("camera");
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
+  const [imageQueue, setImageQueue] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const loggedInUser = getUser();
@@ -46,6 +48,85 @@ const Index = () => {
     };
     fetchNotes();
   }, [user, accessToken]);
+
+  const processNextInQueue = async () => {
+    if (imageQueue.length === 0 || !accessToken) return;
+
+    setIsProcessing(true);
+    const imageDataUrl = imageQueue[0];
+    const base64ImageData = imageDataUrl.split(',')[1];
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.' },
+              {
+                inline_data: {
+                  mime_type: 'image/jpeg',
+                  data: base64ImageData,
+                },
+              },
+            ],
+          }],
+          generationConfig: {
+            "maxOutputTokens": 300
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error.message || 'Failed to analyze image.');
+      }
+
+      const data = await response.json();
+
+      if (data.promptFeedback && data.promptFeedback.blockReason) {
+        throw new Error(`Request blocked: ${data.promptFeedback.blockReason}. Please try a different image.`);
+      }
+
+      const description = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!description) {
+        throw new Error("Failed to get a description from the image. The API response might be empty or invalid.");
+      }
+
+      const newNote: Note = {
+        id: new Date().toISOString(),
+        image: imageDataUrl,
+        text: description,
+        createdAt: new Date().toISOString(),
+      };
+
+      setNotes(prevNotes => {
+        const newNotes = [newNote, ...prevNotes];
+        if (accessToken) {
+            saveNotesToDrive(accessToken, newNotes);
+            toast.success("Note created!", { description: "Your new note has been generated from your image." });
+        }
+        return newNotes;
+      });
+
+    } catch (err: any) {
+      console.error("Failed to process image:", err);
+      toast.error("Processing Failed", { description: err.message || "Could not create note from image." });
+    } finally {
+      setImageQueue(prevQueue => prevQueue.slice(1));
+      setIsProcessing(false);
+    }
+  };
+  
+  useEffect(() => {
+    if (imageQueue.length > 0 && !isProcessing && accessToken) {
+      processNextInQueue();
+    }
+  }, [imageQueue, isProcessing, accessToken]);
 
   const handleLoginSuccess = async (tokenResponse: any) => {
     const token = tokenResponse.access_token;
@@ -86,6 +167,14 @@ const Index = () => {
     setUser(null);
     setNotes([]);
     setAccessToken(null);
+  };
+
+  const queueNoteForProcessing = (imageDataUrl: string) => {
+    setImageQueue(prevQueue => [...prevQueue, imageDataUrl]);
+    setView("notes");
+    toast.info("Image captured!", {
+      description: "Your note is being created in the background.",
+    });
   };
 
   const addNote = async (note: Note) => {
@@ -133,7 +222,7 @@ const Index = () => {
     }
     
     if (view === "camera") {
-      return <CameraView addNote={addNote} apiKey={GEMINI_API_KEY} />;
+      return <CameraView queueNoteForProcessing={queueNoteForProcessing} />;
     }
 
     if (view === "calendar") {

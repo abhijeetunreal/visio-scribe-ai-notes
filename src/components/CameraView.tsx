@@ -1,18 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Loader2, VideoOff, Play } from 'lucide-react';
-import { Note } from '@/types';
+import { Camera, VideoOff, Play } from 'lucide-react';
 
 interface CameraViewProps {
-  addNote: (note: Note) => void;
-  apiKey: string;
+  queueNoteForProcessing: (imageDataUrl: string) => void;
 }
 
-const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
+const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,7 +40,7 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
     }
   };
 
-  const captureAndAnalyze = async () => {
+  const handleQuickCapture = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -53,7 +50,6 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
       return;
     }
     
-    setLoading(true);
     setError(null);
 
     const canvas = canvasRef.current;
@@ -65,71 +61,15 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
     const imageDataUrl = canvas.toDataURL('image/jpeg');
     const base64ImageData = imageDataUrl.split(',')[1];
     
+    // Stop camera immediately after capture to free up resources
+    stopCamera();
+    
     if (!base64ImageData) {
         setError("Failed to capture a valid image. Please try again.");
-        setLoading(false);
         return;
     }
     
-    // Stop camera immediately after capture to free up resources
-    stopCamera();
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.' },
-              {
-                inline_data: {
-                  mime_type: 'image/jpeg',
-                  data: base64ImageData,
-                },
-              },
-            ],
-          }],
-          generationConfig: {
-            "maxOutputTokens": 300
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error.message || 'Failed to analyze image.');
-      }
-
-      const data = await response.json();
-
-      if (data.promptFeedback && data.promptFeedback.blockReason) {
-        throw new Error(`Request blocked: ${data.promptFeedback.blockReason}. Please try a different image.`);
-      }
-
-      const description = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!description) {
-        throw new Error("Failed to get a description from the image. The API response might be empty or invalid.");
-      }
-
-      const newNote: Note = {
-        id: new Date().toISOString(),
-        image: imageDataUrl,
-        text: description,
-        createdAt: new Date().toISOString(),
-      };
-
-      addNote(newNote);
-
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "An unexpected error occurred.");
-    } finally {
-      setLoading(false);
-    }
+    queueNoteForProcessing(imageDataUrl);
   };
 
   if (error) {
@@ -165,8 +105,8 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
         <canvas ref={canvasRef} className="hidden" />
       </div>
       <div className="mt-8">
-        <Button onClick={captureAndAnalyze} disabled={loading} size="lg" className="rounded-full w-20 h-20 shadow-lg shadow-primary/30">
-          {loading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Camera className="h-8 w-8" />}
+        <Button onClick={handleQuickCapture} size="lg" className="rounded-full w-20 h-20 shadow-lg shadow-primary/30">
+          <Camera className="h-8 w-8" />
         </Button>
       </div>
     </div>
