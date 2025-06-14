@@ -5,26 +5,20 @@ import NotesList from "@/components/NotesList";
 import { Note } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Camera, BookOpen, LogOut } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useGoogleLogin } from '@react-oauth/google';
-import { UserProfile, getUser, saveUser, logout as logoutUser, getApiKey, saveApiKey, getNotes, saveNotes } from '@/lib/auth';
+import { UserProfile, getUser, saveUser, logout as logoutUser, getNotes, saveNotes } from '@/lib/auth';
+
+const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
 const Index = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [view, setView] = useState<"camera" | "notes">("camera");
-  const [apiKey, setApiKey] = useState("");
-  const [tempApiKey, setTempApiKey] = useState("");
 
   useEffect(() => {
     const loggedInUser = getUser();
     if (loggedInUser) {
       setUser(loggedInUser);
-      const savedApiKey = getApiKey(loggedInUser.id);
-      if (savedApiKey) {
-        setApiKey(savedApiKey);
-      }
       const savedNotes = getNotes(loggedInUser.id);
       setNotes(savedNotes);
     }
@@ -59,11 +53,9 @@ const Index = () => {
   
   const handleLogout = () => {
     if (user) {
-      localStorage.removeItem(`apiKey_${user.id}`);
       localStorage.removeItem(`notes_${user.id}`);
       logoutUser();
       setUser(null);
-      setApiKey("");
       setNotes([]);
     }
   };
@@ -74,14 +66,6 @@ const Index = () => {
     setNotes(newNotes);
     saveNotes(user.id, newNotes);
     setView("notes");
-  };
-
-  const handleApiKeySubmit = () => {
-    if (user && tempApiKey) {
-      saveApiKey(user.id, tempApiKey);
-      setApiKey(tempApiKey);
-      setTempApiKey("");
-    }
   };
 
   if (!user) {
@@ -123,28 +107,8 @@ const Index = () => {
       </header>
 
       <main className="flex-1 flex flex-col p-4 md:p-8">
-        {!apiKey ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4">
-            <div className="text-center max-w-md">
-              <h2 className="text-2xl font-semibold mb-2">Welcome, {user.name}!</h2>
-              <p className="text-muted-foreground mb-4">
-                To get started, please enter your Google Gemini API key. This is required to analyze images and generate descriptions. Your key is saved locally on your device.
-              </p>
-              <Label htmlFor="apiKey">Google Gemini API Key</Label>
-              <div className="flex gap-2 mt-1">
-                <Input
-                  id="apiKey"
-                  type="password"
-                  value={tempApiKey}
-                  onChange={(e) => setTempApiKey(e.target.value)}
-                  placeholder="Enter your Google Gemini API key"
-                />
-                <Button onClick={handleApiKeySubmit}>Save</Button>
-              </div>
-            </div>
-          </div>
-        ) : view === "camera" ? (
-          <CameraView addNote={addNote} apiKey={apiKey} />
+        {view === "camera" ? (
+          <CameraView addNote={addNote} apiKey={GEMINI_API_KEY} />
         ) : (
           <NotesList notes={notes} />
         )}

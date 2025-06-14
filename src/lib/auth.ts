@@ -29,14 +29,6 @@ export const logout = () => {
   localStorage.removeItem('user');
 };
 
-export const saveApiKey = (userId: string, apiKey: string) => {
-  localStorage.setItem(`apiKey_${userId}`, apiKey);
-};
-
-export const getApiKey = (userId: string): string | null => {
-  return localStorage.getItem(`apiKey_${userId}`);
-};
-
 export const saveNotes = (userId: string, notes: Note[]) => {
   localStorage.setItem(`notes_${userId}`, JSON.stringify(notes));
 };
