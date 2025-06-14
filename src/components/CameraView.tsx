@@ -13,6 +13,7 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   useEffect(() => {
     startCamera();
@@ -25,9 +26,14 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
     };
   }, [stream]);
 
+  const handleVideoReady = () => {
+    setIsVideoReady(true);
+  };
+
   const startCamera = async () => {
     setError(null);
     setIsInitializing(true);
+    setIsVideoReady(false);
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       setStream(mediaStream);
@@ -46,18 +52,14 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
+      setIsVideoReady(false);
     }
   };
 
   const handleQuickCapture = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !isVideoReady) return;
 
     const video = videoRef.current;
-    // This new check ensures the video has loaded before we try to capture.
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      setError("Could not capture image. The video stream isn't fully ready yet. Please wait a moment and try again.");
-      return;
-    }
     
     setError(null);
 
@@ -115,12 +117,28 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
   return (
     <div className="flex flex-col items-center justify-center h-full relative">
       <div className="w-full max-w-4xl aspect-video bg-muted rounded-lg overflow-hidden relative shadow-2xl shadow-primary/10">
-        <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+        <video 
+          ref={videoRef} 
+          autoPlay 
+          playsInline 
+          className="w-full h-full object-cover"
+          onLoadedData={handleVideoReady}
+        />
         <canvas ref={canvasRef} className="hidden" />
+        {stream && !isVideoReady && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+            <Loader2 className="h-8 w-8 text-white animate-spin" />
+          </div>
+        )}
       </div>
       <div className="mt-8">
-        <Button onClick={handleQuickCapture} size="lg" className="rounded-full w-20 h-20 shadow-lg shadow-primary/30">
-          <Camera className="h-8 w-8" />
+        <Button 
+          onClick={handleQuickCapture} 
+          size="lg" 
+          className="rounded-full w-20 h-20 shadow-lg shadow-primary/30"
+          disabled={!isVideoReady}
+        >
+          {isVideoReady ? <Camera className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
         </Button>
       </div>
     </div>
