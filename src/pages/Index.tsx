@@ -39,15 +39,15 @@ const Index = () => {
             <div className="text-center max-w-md">
               <h2 className="text-2xl font-semibold mb-2">Welcome!</h2>
               <p className="text-muted-foreground mb-4">
-                To get started, please enter your OpenAI API key. This is required to analyze images and generate descriptions. Your key is not stored on any server.
+                To get started, please enter your Google Gemini API key. This is required to analyze images and generate descriptions. Your key is not stored on any server.
               </p>
-              <Label htmlFor="apiKey">OpenAI API Key</Label>
+              <Label htmlFor="apiKey">Google Gemini API Key</Label>
               <Input
                 id="apiKey"
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="sk-..."
+                placeholder="Enter your Google Gemini API key"
                 className="mt-1"
               />
             </div>

@@ -50,31 +50,29 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
     context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
     const imageDataUrl = canvas.toDataURL('image/jpeg');
+    const base64ImageData = imageDataUrl.split(',')[1];
     
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-vision:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'text', text: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.' },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: imageDataUrl,
-                  },
+          contents: [{
+            parts: [
+              { text: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.' },
+              {
+                inline_data: {
+                  mime_type: 'image/jpeg',
+                  data: base64ImageData,
                 },
-              ],
-            },
-          ],
-          max_tokens: 300,
+              },
+            ],
+          }],
+          generationConfig: {
+            "maxOutputTokens": 300
+          }
         }),
       });
 
@@ -84,7 +82,16 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
       }
 
       const data = await response.json();
-      const description = data.choices[0].message.content;
+
+      if (data.promptFeedback && data.promptFeedback.blockReason) {
+        throw new Error(`Request blocked: ${data.promptFeedback.blockReason}. Please try a different image.`);
+      }
+
+      const description = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!description) {
+        throw new Error("Failed to get a description from the image. The API response might be empty or invalid.");
+      }
 
       const newNote: Note = {
         id: new Date().toISOString(),
