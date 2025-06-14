@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, Loader2, VideoOff, Play } from 'lucide-react';
@@ -46,10 +45,17 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
 
   const captureAndAnalyze = async () => {
     if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    // This new check ensures the video has loaded before we try to capture.
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setError("Could not capture image. The video stream isn't fully ready yet. Please wait a moment and try again.");
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
-    const video = videoRef.current;
     const canvas = canvasRef.current;
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -58,6 +64,12 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
 
     const imageDataUrl = canvas.toDataURL('image/jpeg');
     const base64ImageData = imageDataUrl.split(',')[1];
+    
+    if (!base64ImageData) {
+        setError("Failed to capture a valid image. Please try again.");
+        setLoading(false);
+        return;
+    }
     
     // Stop camera immediately after capture to free up resources
     stopCamera();
