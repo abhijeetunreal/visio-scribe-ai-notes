@@ -171,9 +171,8 @@ const Index = () => {
 
   const queueNoteForProcessing = (imageDataUrl: string) => {
     setImageQueue(prevQueue => [...prevQueue, imageDataUrl]);
-    setView("notes");
     toast.info("Image captured!", {
-      description: "Your note is being created in the background.",
+      description: "Your note is being created in the background. Check the notes tab to see it.",
     });
   };
 

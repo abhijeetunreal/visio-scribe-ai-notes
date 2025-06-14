@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, VideoOff, Loader2 } from 'lucide-react';
@@ -73,9 +72,6 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
 
     const imageDataUrl = canvas.toDataURL('image/jpeg');
     const base64ImageData = imageDataUrl.split(',')[1];
-    
-    // Stop camera immediately after capture to free up resources
-    stopCamera();
     
     if (!base64ImageData) {
         setError("Failed to capture a valid image. Please try again.");
