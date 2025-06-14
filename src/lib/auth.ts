@@ -28,20 +28,3 @@ export const getUser = (): UserProfile | null => {
 export const logout = () => {
   localStorage.removeItem('user');
 };
-
-export const saveNotes = (userId: string, notes: Note[]) => {
-  localStorage.setItem(`notes_${userId}`, JSON.stringify(notes));
-};
-
-export const getNotes = (userId: string): Note[] => {
-  const notesStr = localStorage.getItem(`notes_${userId}`);
-  if (notesStr) {
-    try {
-      return JSON.parse(notesStr);
-    } catch (e) {
-      console.error("Failed to parse notes from localStorage", e);
-      return [];
-    }
-  }
-  return [];
-};

@@ -4,32 +4,50 @@ import CameraView from "@/components/CameraView";
 import NotesList from "@/components/NotesList";
 import { Note } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Camera, BookOpen, LogOut } from "lucide-react";
+import { Camera, BookOpen, LogOut, Loader2 } from "lucide-react";
 import { useGoogleLogin } from '@react-oauth/google';
-import { UserProfile, getUser, saveUser, logout as logoutUser, getNotes, saveNotes } from '@/lib/auth';
+import { UserProfile, getUser, saveUser, logout as logoutUser } from '@/lib/auth';
+import { getNotesFromDrive, saveNotesToDrive } from "@/lib/drive";
 
 const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
 const Index = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
   const [view, setView] = useState<"camera" | "notes">("camera");
+  const [isLoadingNotes, setIsLoadingNotes] = useState(false);
 
   useEffect(() => {
     const loggedInUser = getUser();
     if (loggedInUser) {
       setUser(loggedInUser);
-      const savedNotes = getNotes(loggedInUser.id);
-      setNotes(savedNotes);
     }
   }, []);
 
+  useEffect(() => {
+    const fetchNotes = async () => {
+      if (user && accessToken) {
+        setIsLoadingNotes(true);
+        try {
+          const savedNotes = await getNotesFromDrive(accessToken);
+          setNotes(savedNotes);
+        } catch (error) {
+          console.error("Failed to fetch notes:", error);
+        } finally {
+          setIsLoadingNotes(false);
+        }
+      }
+    };
+    fetchNotes();
+  }, [user, accessToken]);
+
   const handleLoginSuccess = async (tokenResponse: any) => {
-    const accessToken = tokenResponse.access_token;
+    const token = tokenResponse.access_token;
     try {
       const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: {
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${token}`,
         },
       });
       const profile = await res.json();
@@ -41,6 +59,7 @@ const Index = () => {
       };
       saveUser(newUser);
       setUser(newUser);
+      setAccessToken(token);
     } catch(err) {
       console.error("Failed to fetch user profile", err);
     }
@@ -48,24 +67,23 @@ const Index = () => {
   
   const login = useGoogleLogin({
     onSuccess: handleLoginSuccess,
-    onError: (error) => console.log('Login Failed:', error)
+    onError: (error) => console.log('Login Failed:', error),
+    scope: 'https://www.googleapis.com/auth/drive.appdata',
   });
   
   const handleLogout = () => {
-    if (user) {
-      localStorage.removeItem(`notes_${user.id}`);
-      logoutUser();
-      setUser(null);
-      setNotes([]);
-    }
+    logoutUser();
+    setUser(null);
+    setNotes([]);
+    setAccessToken(null);
   };
 
-  const addNote = (note: Note) => {
-    if (!user) return;
+  const addNote = async (note: Note) => {
+    if (!user || !accessToken) return;
     const newNotes = [note, ...notes];
     setNotes(newNotes);
-    saveNotes(user.id, newNotes);
     setView("notes");
+    await saveNotesToDrive(accessToken, newNotes);
   };
 
   if (!user) {
@@ -81,6 +99,25 @@ const Index = () => {
         </div>
       </div>
     );
+  }
+
+  const renderContent = () => {
+    if (isLoadingNotes) {
+      return (
+        <div className="flex-1 flex items-center justify-center text-center">
+            <div>
+                <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                <p className="mt-4 text-muted-foreground">Loading notes from Google Drive...</p>
+            </div>
+        </div>
+      );
+    }
+    
+    if (view === "camera") {
+      return <CameraView addNote={addNote} apiKey={GEMINI_API_KEY} />;
+    }
+    
+    return <NotesList notes={notes} />;
   }
 
   return (
@@ -107,11 +144,7 @@ const Index = () => {
       </header>
 
       <main className="flex-1 flex flex-col p-4 md:p-8">
-        {view === "camera" ? (
-          <CameraView addNote={addNote} apiKey={GEMINI_API_KEY} />
-        ) : (
-          <NotesList notes={notes} />
-        )}
+        {renderContent()}
       </main>
     </div>
   );
