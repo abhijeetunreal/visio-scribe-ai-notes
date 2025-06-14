@@ -1,6 +1,7 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, Loader2, VideoOff } from 'lucide-react';
+import { Camera, Loader2, VideoOff, Play } from 'lucide-react';
 import { Note } from '@/types';
 
 interface CameraViewProps {
@@ -16,25 +17,32 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const getCameraStream = async () => {
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        setStream(mediaStream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-      } catch (err) {
-        console.error("Error accessing camera:", err);
-        setError("Could not access the camera. Please check permissions and try again.");
-      }
-    };
-
-    getCameraStream();
-
+    // This effect ensures the camera is turned off if the user navigates away.
     return () => {
       stream?.getTracks().forEach(track => track.stop());
     };
-  }, []);
+  }, [stream]);
+
+  const startCamera = async () => {
+    setError(null);
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setStream(mediaStream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      setError("Could not access the camera. Please check permissions and try again.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
 
   const captureAndAnalyze = async () => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -51,6 +59,9 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
     const imageDataUrl = canvas.toDataURL('image/jpeg');
     const base64ImageData = imageDataUrl.split(',')[1];
     
+    // Stop camera immediately after capture to free up resources
+    stopCamera();
+
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
@@ -115,6 +126,22 @@ const CameraView = ({ addNote, apiKey }: CameraViewProps) => {
         <VideoOff className="h-16 w-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold">Camera Error</h2>
         <p className="text-muted-foreground mt-2">{error}</p>
+      </div>
+    );
+  }
+
+  if (!stream) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center">
+        <div className="w-full max-w-4xl aspect-video bg-muted rounded-lg flex flex-col items-center justify-center relative shadow-inner">
+            <VideoOff className="h-16 w-16 text-muted-foreground mb-4"/>
+            <p className="text-muted-foreground">Camera is off</p>
+        </div>
+        <div className="mt-8">
+            <Button onClick={startCamera} size="lg" className="rounded-full w-20 h-20 shadow-lg shadow-primary/30">
+                <Play className="h-8 w-8" />
+            </Button>
+        </div>
       </div>
     );
   }

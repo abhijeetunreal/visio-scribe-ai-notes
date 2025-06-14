@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import CameraView from "@/components/CameraView";
 import NotesList from "@/components/NotesList";
+import CalendarView from "@/components/CalendarView";
 import { Note } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Camera, BookOpen, LogOut, Loader2 } from "lucide-react";
+import { Camera, BookOpen, LogOut, Loader2, Calendar as CalendarIcon } from "lucide-react";
 import { useGoogleLogin } from '@react-oauth/google';
 import { UserProfile, getUser, saveUser, logout as logoutUser, saveAccessToken, getAccessToken } from '@/lib/auth';
 import { getNotesFromDrive, saveNotesToDrive } from "@/lib/drive";
@@ -16,7 +16,7 @@ const Index = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [notes, setNotes] = useState<Note[]>([]);
-  const [view, setView] = useState<"camera" | "notes">("camera");
+  const [view, setView] = useState<"camera" | "notes" | "calendar">("camera");
   const [isLoadingNotes, setIsLoadingNotes] = useState(false);
 
   useEffect(() => {
@@ -135,6 +135,10 @@ const Index = () => {
     if (view === "camera") {
       return <CameraView addNote={addNote} apiKey={GEMINI_API_KEY} />;
     }
+
+    if (view === "calendar") {
+      return <CalendarView notes={notes} apiKey={GEMINI_API_KEY} />;
+    }
     
     return <NotesList notes={notes} deleteNote={deleteNote} />;
   }
@@ -150,6 +154,9 @@ const Index = () => {
                 </Button>
                 <Button variant={view === "notes" ? "default" : "outline"} size="icon" onClick={() => setView("notes")}>
                     <BookOpen className="h-4 w-4" />
+                </Button>
+                <Button variant={view === "calendar" ? "default" : "outline"} size="icon" onClick={() => setView("calendar")}>
+                    <CalendarIcon className="h-4 w-4" />
                 </Button>
             </div>
             <div className="flex items-center gap-2">
