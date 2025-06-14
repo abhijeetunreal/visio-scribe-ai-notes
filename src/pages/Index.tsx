@@ -229,7 +229,7 @@ const Index = () => {
       return <CalendarView notes={notes} apiKey={GEMINI_API_KEY} />;
     }
     
-    return <NotesList notes={notes} deleteNote={deleteNote} />;
+    return <NotesList notes={notes} deleteNote={deleteNote} isProcessing={isProcessing} />;
   }
 
   return (
