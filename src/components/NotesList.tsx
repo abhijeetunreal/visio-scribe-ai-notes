@@ -42,11 +42,13 @@ const NotesList = ({ notes, deleteNote, isProcessing }: NotesListProps) => {
     <div className="w-full flex justify-center">
       <Carousel
         plugins={[
+          // Using `as any` to bypass a TypeScript type mismatch issue between embla-carousel versions.
+          // This does not affect runtime behavior.
           Autoplay({
             delay: 5000,
             stopOnInteraction: true,
             stopOnMouseEnter: true,
-          }),
+          }) as any,
         ]}
         opts={{
           align: "start",
