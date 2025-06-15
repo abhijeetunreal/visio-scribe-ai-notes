@@ -27,17 +27,6 @@ const LandingPage = ({ onLogin }: LandingPageProps) => {
             </Button>
           </div>
         </section>
-
-        {/* Features Section */}
-        <section className="py-20 bg-secondary">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-4xl font-bold mb-8">How It Works</h2>
-            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Curious about the magic behind Visual Notes AI? Discover how we turn your photos into smart, searchable notes in three simple steps.
-            </p>
-            <Button variant="outline" size="lg">Know More</Button>
-          </div>
-        </section>
       </main>
     </div>
   );
