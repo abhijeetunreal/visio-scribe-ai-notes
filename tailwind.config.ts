@@ -101,13 +101,24 @@ export default {
           '40%': { transform: 'scale3d(0.9, 1.1, 1) rotate(2deg)' },
           '60%': { transform: 'scale3d(1.05, 0.95, 1) rotate(-1deg)' },
           '80%': { transform: 'scale3d(0.95, 1.05, 1) rotate(1deg)' },
+        },
+        'water-morph': {
+          '0%, 100%': {
+            borderRadius: '58% 42% 43% 57% / 46% 51% 49% 54%',
+            transform: 'translateY(0px) scale(1)'
+          },
+          '50%': {
+            borderRadius: '46% 54% 52% 48% / 57% 45% 55% 43%',
+            transform: 'translateY(-10px) scale(1.05)'
+          }
         }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
         'ripple': 'ripple 2s ease-out infinite',
-        'wobble': 'wobble 6s ease-in-out infinite'
+        'wobble': 'wobble 6s ease-in-out infinite',
+        'water-morph': 'water-morph 10s ease-in-out infinite'
 			}
 		}
 	},
