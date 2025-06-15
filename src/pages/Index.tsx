@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import CameraView from "@/components/CameraView";
 import NotesList from "@/components/NotesList";
@@ -9,6 +10,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { UserProfile, getUser, saveUser, logout as logoutUser, saveAccessToken, getAccessToken } from '@/lib/auth';
 import { getNotesFromDrive, saveNotesToDrive } from "@/lib/drive";
 import { toast } from "sonner";
+import AnimatedLogo from "@/components/AnimatedLogo";
 
 const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
@@ -216,7 +218,8 @@ const Index = () => {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-background">
-        <div className="text-center p-8">
+        <div className="text-center p-8 flex flex-col items-center">
+          <AnimatedLogo />
           <h1 className="text-4xl font-bold text-primary mb-2">Visual Notes AI</h1>
           <p className="text-muted-foreground mb-8">Capture your thoughts visually. Login to start.</p>
           <Button onClick={() => login()} size="lg">
