@@ -85,19 +85,21 @@ export default {
 						height: '0'
 					}
 				},
-        'morph': {
-          '0%, 100%': {
-            borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%',
+        'ripple': {
+          'from': {
+            transform: 'scale(0.5)',
+            opacity: '0.5'
           },
-          '50%': {
-            borderRadius: '30% 60% 70% 40% / 50% 60% 30% 60%',
-          },
-        }
+          'to': {
+            transform: 'scale(2.5)',
+            opacity: '0'
+          }
+        },
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-        'morph': 'morph 8s ease-in-out infinite',
+        'ripple': 'ripple 2s ease-out infinite',
 			}
 		}
 	},
