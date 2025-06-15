@@ -111,6 +111,16 @@ export default {
             borderRadius: '46% 54% 52% 48% / 57% 45% 55% 43%',
             transform: 'translateY(-10px) scale(1.05)'
           }
+        },
+        'fade-in': {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(10px)'
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)'
+          }
         }
 			},
 			animation: {
@@ -118,7 +128,8 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
         'ripple': 'ripple 2s ease-out infinite',
         'wobble': 'wobble 6s ease-in-out infinite',
-        'water-morph': 'water-morph 10s ease-in-out infinite'
+        'water-morph': 'water-morph 10s ease-in-out infinite',
+        'fade-in': 'fade-in 0.5s ease-out forwards'
 			}
 		}
 	},
