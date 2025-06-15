@@ -39,8 +39,9 @@ const Index = () => {
         try {
           const savedNotes = await getNotesFromDrive(accessToken);
           setNotes(savedNotes);
-        } catch (error) {
+        } catch (error: any) {
           console.error("Failed to fetch notes:", error);
+          toast.error("Failed to load notes", { description: error.message || "Could not retrieve your notes from Google Drive." });
         } finally {
           setIsLoadingNotes(false);
         }
@@ -55,6 +56,7 @@ const Index = () => {
     setIsProcessing(true);
     const imageDataUrl = imageQueue[0];
     const base64ImageData = imageDataUrl.split(',')[1];
+    const tempAccessToken = accessToken;
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -104,14 +106,19 @@ const Index = () => {
         createdAt: new Date().toISOString(),
       };
 
-      setNotes(prevNotes => {
-        const newNotes = [newNote, ...prevNotes];
-        if (accessToken) {
-            saveNotesToDrive(accessToken, newNotes);
-            toast.success("Note created!", { description: "Your new note has been generated from your image." });
-        }
-        return newNotes;
-      });
+      const previousNotes = notes;
+      const newNotes = [newNote, ...previousNotes];
+      setNotes(newNotes);
+
+      try {
+        await saveNotesToDrive(tempAccessToken, newNotes);
+        toast.success("Note created!", { description: "Your new note has been generated from your image." });
+      } catch (saveError: any) {
+        setNotes(previousNotes); // Rollback
+        toast.error("Failed to save note", {
+          description: saveError.message || "Couldn't save to Google Drive."
+        });
+      }
 
     } catch (err: any) {
       console.error("Failed to process image:", err);
@@ -179,19 +186,31 @@ const Index = () => {
 
   const addNote = async (note: Note) => {
     if (!user || !accessToken) return;
+    const originalNotes = notes;
     const newNotes = [note, ...notes];
     setNotes(newNotes);
     setView("notes");
-    await saveNotesToDrive(accessToken, newNotes);
-    toast.success("Note saved!", { description: "Your new note has been saved to Google Drive." });
+    try {
+      await saveNotesToDrive(accessToken, newNotes);
+      toast.success("Note saved!", { description: "Your new note has been saved to Google Drive." });
+    } catch (error: any) {
+      setNotes(originalNotes);
+      toast.error("Failed to save note", { description: error.message || "Could not save the note to Google Drive." });
+    }
   };
 
   const deleteNote = async (noteId: string) => {
     if (!user || !accessToken) return;
+    const originalNotes = notes;
     const newNotes = notes.filter((note) => note.id !== noteId);
     setNotes(newNotes);
-    await saveNotesToDrive(accessToken, newNotes);
-    toast.info("Note deleted", { description: "The note has been removed from Google Drive." });
+    try {
+      await saveNotesToDrive(accessToken, newNotes);
+      toast.info("Note deleted", { description: "The note has been removed from your Google Drive." });
+    } catch (error: any) {
+      setNotes(originalNotes);
+      toast.error("Failed to delete note", { description: error.message || "Could not remove the note from Google Drive." });
+    }
   };
 
   if (!user) {
