@@ -85,18 +85,6 @@ export default {
 						height: '0'
 					}
 				},
-        'node-fire': {
-          '0%, 100%': { 
-            transform: 'scale(1)',
-            backgroundColor: 'hsl(var(--primary) / 0.8)',
-            boxShadow: '0 0 4px hsl(var(--primary) / 0.5)' 
-          },
-          '50%': { 
-            transform: 'scale(1.5)', 
-            backgroundColor: 'hsl(var(--primary-foreground))',
-            boxShadow: '0 0 15px hsl(var(--primary))' 
-          },
-        },
         'morph': {
           '0%, 100%': {
             borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%',
@@ -109,7 +97,6 @@ export default {
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-        'node-fire': 'node-fire 2s ease-in-out infinite',
         'morph': 'morph 8s ease-in-out infinite',
 			}
 		}
