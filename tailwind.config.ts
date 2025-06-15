@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -96,16 +95,19 @@ export default {
             opacity: '0'
           }
         },
-        'bubble-pulse': {
-          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
-          '50%': { transform: 'scale(1.05)', opacity: '0.9' },
+        'wobble': {
+          '0%, 100%': { transform: 'scale3d(1, 1, 1) rotate(0deg)' },
+          '20%': { transform: 'scale3d(1.1, 0.9, 1) rotate(-2deg)' },
+          '40%': { transform: 'scale3d(0.9, 1.1, 1) rotate(2deg)' },
+          '60%': { transform: 'scale3d(1.05, 0.95, 1) rotate(-1deg)' },
+          '80%': { transform: 'scale3d(0.95, 1.05, 1) rotate(1deg)' },
         }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
         'ripple': 'ripple 2s ease-out infinite',
-        'bubble-pulse': 'bubble-pulse 4s ease-in-out infinite'
+        'wobble': 'wobble 6s ease-in-out infinite'
 			}
 		}
 	},

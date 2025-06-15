@@ -5,7 +5,7 @@ const AnimatedLogo = () => {
   return (
     <div className="relative w-32 h-32 flex items-center justify-center mb-8">
       {/* Central element */}
-      <div className="w-12 h-12 bg-primary/90 rounded-full shadow-lg animate-bubble-pulse"></div>
+      <div className="w-12 h-12 bg-primary/90 rounded-full shadow-lg animate-wobble"></div>
 
       {/* Pulsing ripple rings */}
       <div
