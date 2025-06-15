@@ -2,6 +2,14 @@
 import { Note } from "@/types";
 import NoteView from "./NoteView";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
 
 interface NotesListProps {
   notes: Note[];
@@ -31,11 +39,40 @@ const NotesList = ({ notes, deleteNote, isProcessing }: NotesListProps) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {isProcessing && <NoteSkeleton />}
-      {notes.map((note) => (
-        <NoteView key={note.id} note={note} deleteNote={deleteNote} />
-      ))}
+    <div className="w-full flex justify-center">
+      <Carousel
+        plugins={[
+          Autoplay({
+            delay: 5000,
+            stopOnInteraction: true,
+            stopOnMouseEnter: true,
+          }),
+        ]}
+        opts={{
+          align: "start",
+          loop: true,
+        }}
+        className="w-full max-w-sm md:max-w-xl lg:max-w-4xl xl:max-w-6xl"
+      >
+        <CarouselContent>
+          {isProcessing && (
+            <CarouselItem className="md:basis-1/2 lg:basis-1/3">
+              <div className="p-1">
+                <NoteSkeleton />
+              </div>
+            </CarouselItem>
+          )}
+          {notes.map((note) => (
+            <CarouselItem key={note.id} className="md:basis-1/2 lg:basis-1/3 animate-scale-in">
+              <div className="p-2">
+                <NoteView note={note} deleteNote={deleteNote} />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious className="hidden md:flex" />
+        <CarouselNext className="hidden md:flex" />
+      </Carousel>
     </div>
   );
 };
