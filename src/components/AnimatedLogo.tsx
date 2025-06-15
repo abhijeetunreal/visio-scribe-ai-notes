@@ -27,13 +27,13 @@ const AnimatedLogo = () => {
       </div>
       
       {/* Inner rotating ring */}
-      <div className="absolute w-3/4 h-3/4 rounded-full border-t-2 border-b-2 border-primary/30 animate-[spin_8s_linear_infinite_reverse]"></div>
+      <div className="absolute w-3/4 h-3/4 border-t-2 border-b-2 border-primary/30 animate-[spin_8s_linear_infinite_reverse] animate-morph"></div>
       
       {/* Dashed ring, suggesting pathways */}
-      <div className="absolute w-1/2 h-1/2 rounded-full border border-dashed border-primary/20 animate-[spin_10s_linear_infinite]"></div>
+      <div className="absolute w-1/2 h-1/2 border border-dashed border-primary/20 animate-[spin_10s_linear_infinite] animate-morph"></div>
 
       {/* Central Core */}
-      <div className="w-1/4 h-1/4 bg-primary/80 rounded-full shadow-[0_0_20px_theme(colors.primary)] animate-pulse"></div>
+      <div className="w-1/4 h-1/4 bg-primary/80 shadow-[0_0_20px_theme(colors.primary)] animate-pulse animate-morph"></div>
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -97,12 +96,21 @@ export default {
             backgroundColor: 'hsl(var(--primary-foreground))',
             boxShadow: '0 0 15px hsl(var(--primary))' 
           },
+        },
+        'morph': {
+          '0%, 100%': {
+            borderRadius: '60% 40% 30% 70% / 60% 30% 70% 40%',
+          },
+          '50%': {
+            borderRadius: '30% 60% 70% 40% / 50% 60% 30% 60%',
+          },
         }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
         'node-fire': 'node-fire 2s ease-in-out infinite',
+        'morph': 'morph 8s ease-in-out infinite',
 			}
 		}
 	},
