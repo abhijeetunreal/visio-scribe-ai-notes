@@ -9,10 +9,10 @@ import { Loader2 } from 'lucide-react';
 
 interface CalendarViewProps {
   notes: Note[];
-  apiKey: string;
+  appsScriptUrl: string;
 }
 
-const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
+const CalendarView = ({ notes, appsScriptUrl }: CalendarViewProps) => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dailyNotes, setDailyNotes] = useState<Note[]>([]);
   const [summary, setSummary] = useState<string>('');
@@ -43,12 +43,13 @@ const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
     const prompt = `Based on the following notes, provide a concise and insightful summary of the day's events and observations.\n\nNotes:\n${notesText}`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(appsScriptUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { "maxOutputTokens": 300 }
+          action: 'generateSummary',
+          notesText: notesText,
+          prompt: prompt
         }),
       });
 
@@ -57,7 +58,12 @@ const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
       }
 
       const data = await response.json();
-      const generatedSummary = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      const generatedSummary = data.result;
       
       if (generatedSummary) {
         setSummary(generatedSummary);

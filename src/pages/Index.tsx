@@ -11,6 +11,9 @@ import { getNotesFromDrive, saveNotesToDrive } from "@/lib/drive";
 import { toast } from "sonner";
 import LandingPage from "@/components/LandingPage";
 
+// Replace this URL with your deployed Google Apps Script Web App URL
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+
 const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
 const Index = () => {
@@ -60,41 +63,29 @@ const Index = () => {
     const tempAccessToken = accessToken;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              { text: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.' },
-              {
-                inline_data: {
-                  mime_type: 'image/jpeg',
-                  data: base64ImageData,
-                },
-              },
-            ],
-          }],
-          generationConfig: {
-            "maxOutputTokens": 300
-          }
+          action: 'analyzeImage',
+          imageData: base64ImageData,
+          prompt: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.'
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error.message || 'Failed to analyze image.');
+        throw new Error('Failed to analyze image.');
       }
 
       const data = await response.json();
 
-      if (data.promptFeedback && data.promptFeedback.blockReason) {
-        throw new Error(`Request blocked: ${data.promptFeedback.blockReason}. Please try a different image.`);
+      if (data.error) {
+        throw new Error(data.error);
       }
 
-      const description = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      const description = data.result;
 
       if (!description) {
         throw new Error("Failed to get a description from the image. The API response might be empty or invalid.");
@@ -235,7 +226,7 @@ const Index = () => {
     }
 
     if (view === "calendar") {
-      return <CalendarView notes={notes} apiKey={GEMINI_API_KEY} />;
+      return <CalendarView notes={notes} appsScriptUrl={APPS_SCRIPT_URL} />;
     }
     
     return <NotesList notes={notes} deleteNote={deleteNote} isProcessing={isProcessing} />;
