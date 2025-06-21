@@ -11,8 +11,7 @@ import { getNotesFromDrive, saveNotesToDrive } from "@/lib/drive";
 import { toast } from "sonner";
 import LandingPage from "@/components/LandingPage";
 
-// REMOVED: const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
-const PROXY_URL = "https://script.google.com/macros/s/AKfycbzc1X1Tn7W8Mpfy5OQY1F8Le_kvzFxiaHhoQI6v0w1oH-wk9nHwcTdUa38TlgZmtsI/exec"; // Replace with your Apps Script URL
+const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
 const Index = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -61,24 +60,36 @@ const Index = () => {
     const tempAccessToken = accessToken;
 
     try {
-      // Call Apps Script proxy instead of Gemini directly
-      const response = await fetch(PROXY_URL, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          image: base64ImageData,
-          maxTokens: 300
-        })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: 'Describe what you see in this image in a detailed but concise way, as if you were taking a note. Focus on the main subject and key details of the environment.' },
+              {
+                inline_data: {
+                  mime_type: 'image/jpeg',
+                  data: base64ImageData,
+                },
+              },
+            ],
+          }],
+          generationConfig: {
+            "maxOutputTokens": 300
+          }
+        }),
       });
 
-      const data = await response.json();
-      
-      // Handle proxy errors
-      if (data.error) {
-        throw new Error(data.error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error.message || 'Failed to analyze image.');
       }
-      
-      // Handle Gemini-specific errors
+
+      const data = await response.json();
+
       if (data.promptFeedback && data.promptFeedback.blockReason) {
         throw new Error(`Request blocked: ${data.promptFeedback.blockReason}. Please try a different image.`);
       }
@@ -224,7 +235,7 @@ const Index = () => {
     }
 
     if (view === "calendar") {
-      return <CalendarView notes={notes} proxyUrl={PROXY_URL} />;
+      return <CalendarView notes={notes} apiKey={GEMINI_API_KEY} />;
     }
     
     return <NotesList notes={notes} deleteNote={deleteNote} isProcessing={isProcessing} />;
