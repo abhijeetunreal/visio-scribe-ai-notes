@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Note } from '@/types';
 import { Calendar } from '@/components/ui/calendar';
@@ -9,10 +8,10 @@ import { Loader2 } from 'lucide-react';
 
 interface CalendarViewProps {
   notes: Note[];
-  apiKey: string;
+  proxyUrl: "https://script.google.com/macros/s/AKfycbzc1X1Tn7W8Mpfy5OQY1F8Le_kvzFxiaHhoQI6v0w1oH-wk9nHwcTdUa38TlgZmtsI/exec"; // Changed from apiKey to proxyUrl
 }
 
-const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
+const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [dailyNotes, setDailyNotes] = useState<Note[]>([]);
   const [summary, setSummary] = useState<string>('');
@@ -43,12 +42,13 @@ const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
     const prompt = `Based on the following notes, provide a concise and insightful summary of the day's events and observations.\n\nNotes:\n${notesText}`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+      // Call Apps Script proxy instead of Gemini directly
+      const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { "maxOutputTokens": 300 }
+          text: prompt, // Send text instead of image
+          maxTokens: 300
         }),
       });
 
@@ -57,6 +57,17 @@ const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
       }
 
       const data = await response.json();
+      
+      // Handle proxy errors
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Handle Gemini-specific errors
+      if (data.promptFeedback && data.promptFeedback.blockReason) {
+        throw new Error(`Blocked: ${data.promptFeedback.blockReason}`);
+      }
+      
       const generatedSummary = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (generatedSummary) {
@@ -88,13 +99,21 @@ const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
             <CardTitle>
               Summary for {date ? date.toLocaleDateString() : '...'}
             </CardTitle>
+            <CardDescription>
+              AI-generated summary based on your notes
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {dailyNotes.length > 0 ? (
               <div className="space-y-6">
                 <div>
                   <h3 className="font-semibold text-lg mb-2">AI Summary</h3>
-                  {isLoadingSummary && <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Generating...</div>}
+                  {isLoadingSummary && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin"/>
+                      Generating...
+                    </div>
+                  )}
                   {error && <p className="text-destructive">{error}</p>}
                   {summary && <p className="text-muted-foreground whitespace-pre-wrap">{summary}</p>}
                 </div>
@@ -103,10 +122,24 @@ const CalendarView = ({ notes, apiKey }: CalendarViewProps) => {
                   <div className="space-y-4">
                     {dailyNotes.map(note => (
                        <Card key={note.id} className="flex gap-4 p-4">
-                         <img src={note.image} alt="Note" className="w-24 h-24 object-cover rounded-md"/>
+                         <img 
+                           src={note.image} 
+                           alt="Note" 
+                           className="w-24 h-24 object-cover rounded-md"
+                           onError={(e) => {
+                             const target = e.target as HTMLImageElement;
+                             target.onerror = null;
+                             target.classList.add('hidden');
+                           }}
+                         />
                          <div className="flex-1">
                            <p className="text-sm text-foreground">{note.text}</p>
-                           <p className="text-xs text-muted-foreground mt-2">{new Date(note.createdAt).toLocaleTimeString()}</p>
+                           <p className="text-xs text-muted-foreground mt-2">
+                             {new Date(note.createdAt).toLocaleTimeString([], {
+                               hour: '2-digit', 
+                               minute: '2-digit'
+                             })}
+                           </p>
                          </div>
                        </Card>
                     ))}
