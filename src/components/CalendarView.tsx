@@ -17,6 +17,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
   const [summary, setSummary] = useState<string>('');
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     if (date) {
@@ -38,18 +39,25 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
     setIsLoadingSummary(true);
     setError(null);
     setSummary('');
+    setDebugInfo('');
 
     const notesText = notesForDay.map((note) => `- ${note.text}`).join('\n');
     const prompt = `Based on the following notes, provide a concise and insightful summary of the day's events and observations.\n\nNotes:\n${notesText}`;
 
     try {
+      // Create debug info
+      const debugPayload = {
+        text: prompt.substring(0, 100) + '...', // Show first 100 chars
+        maxTokens: 300
+      };
+      
+      setDebugInfo(`Sending to proxy: ${proxyUrl}\nPayload: ${JSON.stringify(debugPayload, null, 2)}`);
+      
       // Use proxy URL directly
       const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          // Add this header for CORS
-          'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
           text: prompt,
@@ -59,14 +67,22 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
 
       // Handle HTTP errors
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || 
-          `Server error: ${response.status} ${response.statusText}`
-        );
+        let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        
+        try {
+          const errorData = await response.json();
+          errorMessage += `\nDetails: ${JSON.stringify(errorData)}`;
+        } catch (e) {
+          errorMessage += '\n(Could not parse error details)';
+        }
+        
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      
+      // Update debug info with response
+      setDebugInfo(prev => prev + `\n\nResponse: ${JSON.stringify(data, null, 2)}`);
       
       // Handle proxy errors
       if (data.error) {
@@ -92,17 +108,10 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
     } catch (err: any) {
       console.error("Summary error:", err);
       
-      // Handle specific CORS error
-      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
-        setError('Network error. Please check: \n1. Your internet connection \n2. Proxy URL is correct \n3. Script deployment is set to "Anyone, even anonymous"');
-      } 
-      // Handle Google authentication error
-      else if (err.message.includes('requires permission')) {
-        setError('Proxy authentication error. Please ensure the script is deployed with "Anyone, even anonymous" access.');
-      }
-      else {
-        setError(err.message || "Failed to generate summary");
-      }
+      // Update debug info with error
+      setDebugInfo(prev => prev + `\n\nError: ${err.message}`);
+      
+      setError(err.message || "Failed to generate summary");
     } finally {
       setIsLoadingSummary(false);
     }
@@ -124,8 +133,8 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
             <CardTitle>
               Summary for {date ? date.toLocaleDateString() : '...'}
             </CardTitle>
-            <CardDescription>
-              {proxyUrl ? `Using proxy: ${new URL(proxyUrl).hostname}` : 'Proxy not configured'}
+            <CardDescription className="text-xs">
+              Proxy URL: {proxyUrl}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -141,9 +150,17 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
                   )}
                   
                   {error && (
-                    <div className="bg-red-50 p-4 rounded-md border border-red-200">
-                      <p className="text-red-700 font-medium">Error</p>
+                    <div className="bg-red-50 p-4 rounded-md border border-red-200 mb-4">
+                      <p className="text-red-700 font-medium">Error Generating Summary</p>
                       <p className="text-red-600 text-sm mt-2 whitespace-pre-wrap">{error}</p>
+                      
+                      <div className="mt-4">
+                        <h4 className="text-red-800 font-medium text-sm">Debug Info:</h4>
+                        <pre className="text-xs text-red-700 bg-red-100 p-2 rounded mt-1 overflow-auto max-h-40">
+                          {debugInfo}
+                        </pre>
+                      </div>
+                      
                       <Button
                         variant="outline"
                         className="mt-3 text-red-700 border-red-300 hover:bg-red-100"
@@ -151,9 +168,6 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
                       >
                         Retry
                       </Button>
-                      <p className="text-xs text-red-500 mt-3">
-                        If this persists, check Apps Script execution logs
-                      </p>
                     </div>
                   )}
                   
@@ -164,7 +178,34 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
                   )}
                 </div>
                 
-                {/* ... rest of your component ... */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-4">Notes for the day</h3>
+                  <div className="space-y-4">
+                    {dailyNotes.map(note => (
+                       <Card key={note.id} className="flex gap-4 p-4">
+                         <img 
+                           src={note.image} 
+                           alt="Note" 
+                           className="w-24 h-24 object-cover rounded-md"
+                           onError={(e) => {
+                             const target = e.target as HTMLImageElement;
+                             target.onerror = null;
+                             target.classList.add('hidden');
+                           }}
+                         />
+                         <div className="flex-1">
+                           <p className="text-sm text-foreground">{note.text}</p>
+                           <p className="text-xs text-muted-foreground mt-2">
+                             {new Date(note.createdAt).toLocaleTimeString([], {
+                               hour: '2-digit', 
+                               minute: '2-digit'
+                             })}
+                           </p>
+                         </div>
+                       </Card>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <p className="text-muted-foreground">No notes found for this day.</p>
