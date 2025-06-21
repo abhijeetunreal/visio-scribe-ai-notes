@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 interface CalendarViewProps {
   notes: Note[];
-  proxyUrl: {PROXY_URL}; // Changed from apiKey to proxyUrl
+  proxyUrl: {PROXY_URL};
 }
 
 const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
@@ -29,6 +29,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
         generateSummary(notesForDay);
       } else {
         setSummary('');
+        setError(null);
       }
     }
   }, [date, notes]);
@@ -42,30 +43,43 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
     const prompt = `Based on the following notes, provide a concise and insightful summary of the day's events and observations.\n\nNotes:\n${notesText}`;
 
     try {
-      // Call your Apps Script proxy URL
+      // Use proxy URL directly
       const response = await fetch(proxyUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // Add this header for CORS
+          'X-Requested-With': 'XMLHttpRequest'
+        },
         body: JSON.stringify({
-          text: prompt, // Send text instead of image
+          text: prompt,
           maxTokens: 300
         }),
       });
 
+      // Handle HTTP errors
       if (!response.ok) {
-        throw new Error('Failed to generate summary. Server responded with ' + response.status);
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || 
+          `Server error: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
       
       // Handle proxy errors
       if (data.error) {
-        throw new Error(data.error);
+        throw new Error(
+          data.error.details?.error?.message || 
+          data.error || 
+          'Unknown proxy error'
+        );
       }
       
       // Handle Gemini-specific errors
       if (data.promptFeedback && data.promptFeedback.blockReason) {
-        throw new Error(`Request blocked: ${data.promptFeedback.blockReason}`);
+        throw new Error(`Content blocked: ${data.promptFeedback.blockReason}`);
       }
       
       const generatedSummary = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -73,11 +87,22 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
       if (generatedSummary) {
         setSummary(generatedSummary);
       } else {
-        throw new Error("Could not extract summary from API response.");
+        throw new Error("No summary generated in API response");
       }
     } catch (err: any) {
-      console.error("Summary generation error:", err);
-      setError(err.message || "An unexpected error occurred while generating the summary.");
+      console.error("Summary error:", err);
+      
+      // Handle specific CORS error
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        setError('Network error. Please check: \n1. Your internet connection \n2. Proxy URL is correct \n3. Script deployment is set to "Anyone, even anonymous"');
+      } 
+      // Handle Google authentication error
+      else if (err.message.includes('requires permission')) {
+        setError('Proxy authentication error. Please ensure the script is deployed with "Anyone, even anonymous" access.');
+      }
+      else {
+        setError(err.message || "Failed to generate summary");
+      }
     } finally {
       setIsLoadingSummary(false);
     }
@@ -100,7 +125,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
               Summary for {date ? date.toLocaleDateString() : '...'}
             </CardTitle>
             <CardDescription>
-              AI-generated summary based on your notes
+              {proxyUrl ? `Using proxy: ${new URL(proxyUrl).hostname}` : 'Proxy not configured'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -111,65 +136,38 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
                   {isLoadingSummary && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin"/>
-                      Generating...
+                      Generating summary...
                     </div>
                   )}
+                  
                   {error && (
-                    <div className="text-destructive p-3 bg-destructive/10 rounded-md">
-                      <p className="font-medium">Error generating summary</p>
-                      <p className="text-sm">{error}</p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="mt-2"
+                    <div className="bg-red-50 p-4 rounded-md border border-red-200">
+                      <p className="text-red-700 font-medium">Error</p>
+                      <p className="text-red-600 text-sm mt-2 whitespace-pre-wrap">{error}</p>
+                      <Button
+                        variant="outline"
+                        className="mt-3 text-red-700 border-red-300 hover:bg-red-100"
                         onClick={() => generateSummary(dailyNotes)}
                       >
-                        Try Again
+                        Retry
                       </Button>
+                      <p className="text-xs text-red-500 mt-3">
+                        If this persists, check Apps Script execution logs
+                      </p>
                     </div>
                   )}
-                  {summary && <p className="text-muted-foreground whitespace-pre-wrap bg-accent/20 p-4 rounded-md">{summary}</p>}
+                  
+                  {summary && !error && (
+                    <p className="bg-green-50 border border-green-200 p-4 rounded-md whitespace-pre-wrap">
+                      {summary}
+                    </p>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg mb-4">Notes for the day</h3>
-                  <div className="space-y-4">
-                    {dailyNotes.map(note => (
-                       <Card key={note.id} className="flex gap-4 p-4">
-                         <img 
-                           src={note.image} 
-                           alt="Note" 
-                           className="w-24 h-24 object-cover rounded-md"
-                           onError={(e) => {
-                             const target = e.target as HTMLImageElement;
-                             target.onerror = null;
-                             target.classList.add('hidden');
-                           }}
-                         />
-                         <div className="flex-1">
-                           <p className="text-sm text-foreground">{note.text}</p>
-                           <p className="text-xs text-muted-foreground mt-2">
-                             {new Date(note.createdAt).toLocaleTimeString([], {
-                               hour: '2-digit', 
-                               minute: '2-digit'
-                             })}
-                           </p>
-                         </div>
-                       </Card>
-                    ))}
-                  </div>
-                </div>
+                
+                {/* ... rest of your component ... */}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="bg-accent/20 rounded-full p-4 mb-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-                  </svg>
-                </div>
-                <p className="text-muted-foreground">No notes found for this day.</p>
-                <p className="text-sm text-muted-foreground mt-2">Capture notes using the camera to see them here.</p>
-              </div>
+              <p className="text-muted-foreground">No notes found for this day.</p>
             )}
           </CardContent>
         </Card>
