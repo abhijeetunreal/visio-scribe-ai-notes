@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import LandingPage from "@/components/LandingPage";
 
 // Replace this URL with your deployed Google Apps Script Web App URL
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc1X1Tn7W8Mpfy5OQY1F8Le_kvzFxiaHhoQI6v0w1oH-wk9nHwcTdUa38TlgZmtsI/exec";
 
 const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
