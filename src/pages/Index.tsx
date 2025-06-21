@@ -14,7 +14,6 @@ import LandingPage from "@/components/LandingPage";
 // Replace this URL with your deployed Google Apps Script Web App URL
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzc1X1Tn7W8Mpfy5OQY1F8Le_kvzFxiaHhoQI6v0w1oH-wk9nHwcTdUa38TlgZmtsI/exec";
 
-const GEMINI_API_KEY = "AIzaSyBut-K44X83hTQZ5OVx9ccbHGvJyAgPUpg";
 
 const Index = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
