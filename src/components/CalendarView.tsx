@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 interface CalendarViewProps {
   notes: Note[];
-  proxyUrl: "https://script.google.com/macros/s/AKfycbzc1X1Tn7W8Mpfy5OQY1F8Le_kvzFxiaHhoQI6v0w1oH-wk9nHwcTdUa38TlgZmtsI/exec"; // Changed from apiKey to proxyUrl
+  proxyUrl: {PROXY_URL}; // Changed from apiKey to proxyUrl
 }
 
 const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
@@ -42,7 +42,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
     const prompt = `Based on the following notes, provide a concise and insightful summary of the day's events and observations.\n\nNotes:\n${notesText}`;
 
     try {
-      // Call Apps Script proxy instead of Gemini directly
+      // Call your Apps Script proxy URL
       const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -53,7 +53,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate summary.');
+        throw new Error('Failed to generate summary. Server responded with ' + response.status);
       }
 
       const data = await response.json();
@@ -65,7 +65,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
       
       // Handle Gemini-specific errors
       if (data.promptFeedback && data.promptFeedback.blockReason) {
-        throw new Error(`Blocked: ${data.promptFeedback.blockReason}`);
+        throw new Error(`Request blocked: ${data.promptFeedback.blockReason}`);
       }
       
       const generatedSummary = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -76,7 +76,7 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
         throw new Error("Could not extract summary from API response.");
       }
     } catch (err: any) {
-      console.error(err);
+      console.error("Summary generation error:", err);
       setError(err.message || "An unexpected error occurred while generating the summary.");
     } finally {
       setIsLoadingSummary(false);
@@ -114,8 +114,21 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
                       Generating...
                     </div>
                   )}
-                  {error && <p className="text-destructive">{error}</p>}
-                  {summary && <p className="text-muted-foreground whitespace-pre-wrap">{summary}</p>}
+                  {error && (
+                    <div className="text-destructive p-3 bg-destructive/10 rounded-md">
+                      <p className="font-medium">Error generating summary</p>
+                      <p className="text-sm">{error}</p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                        onClick={() => generateSummary(dailyNotes)}
+                      >
+                        Try Again
+                      </Button>
+                    </div>
+                  )}
+                  {summary && <p className="text-muted-foreground whitespace-pre-wrap bg-accent/20 p-4 rounded-md">{summary}</p>}
                 </div>
                 <div>
                   <h3 className="font-semibold text-lg mb-4">Notes for the day</h3>
@@ -147,7 +160,16 @@ const CalendarView = ({ notes, proxyUrl }: CalendarViewProps) => {
                 </div>
               </div>
             ) : (
-              <p className="text-muted-foreground">No notes found for this day.</p>
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="bg-accent/20 rounded-full p-4 mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                  </svg>
+                </div>
+                <p className="text-muted-foreground">No notes found for this day.</p>
+                <p className="text-sm text-muted-foreground mt-2">Capture notes using the camera to see them here.</p>
+              </div>
             )}
           </CardContent>
         </Card>
