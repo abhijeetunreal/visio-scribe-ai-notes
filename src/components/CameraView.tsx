@@ -1,9 +1,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, VideoOff, Loader2, Settings } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import AppsScriptSetup from './AppsScriptSetup';
+import { Camera, VideoOff, Loader2 } from 'lucide-react';
 
 interface CameraViewProps {
   queueNoteForProcessing: (imageDataUrl: string) => void;
@@ -16,7 +14,6 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isVideoReady, setIsVideoReady] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
 
   useEffect(() => {
     startCamera();
@@ -40,15 +37,7 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
     setIsInitializing(true);
     setIsVideoReady(false);
     try {
-      console.log('Starting camera...');
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      console.log('Camera stream acquired');
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       setStream(mediaStream);
     } catch (err) {
       console.error("Error accessing camera:", err);
@@ -67,18 +56,13 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
   };
 
   const handleVideoCanPlay = () => {
-    console.log('Video ready to play');
     setIsVideoReady(true);
   };
 
   const handleQuickCapture = async () => {
-    if (!videoRef.current || !canvasRef.current || !isVideoReady) {
-      console.log('Cannot capture: video not ready');
-      return;
-    }
+    if (!videoRef.current || !canvasRef.current || !isVideoReady) return;
     
     setError(null);
-    console.log('Capturing image...');
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -87,10 +71,8 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
     const context = canvas.getContext('2d');
     context?.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const imageDataUrl = canvas.toDataURL('image/jpeg');
     const base64ImageData = imageDataUrl.split(',')[1];
-    
-    console.log('Image captured, size:', base64ImageData.length);
     
     // Stop camera immediately after capture to free up resources
     stopCamera();
@@ -114,52 +96,22 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+      <div className="flex flex-col items-center justify-center h-full text-center">
         <VideoOff className="h-16 w-16 text-destructive mb-4" />
         <h2 className="text-xl font-semibold">Camera Error</h2>
         <p className="text-muted-foreground mt-2">{error}</p>
-        <div className="flex gap-2">
-          <Button onClick={startCamera}>Try Again</Button>
-          <Dialog open={showSetup} onOpenChange={setShowSetup}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Settings className="h-4 w-4 mr-2" />
-                Setup Guide
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Setup Instructions</DialogTitle>
-              </DialogHeader>
-              <AppsScriptSetup />
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Button onClick={startCamera} className="mt-4">Try Again</Button>
       </div>
     );
   }
 
   if (!stream) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
+      <div className="flex flex-col items-center justify-center h-full text-center">
         <div className="w-full max-w-4xl aspect-video bg-muted rounded-lg flex flex-col items-center justify-center relative shadow-inner">
             <VideoOff className="h-16 w-16 text-muted-foreground mb-4"/>
             <p className="text-muted-foreground">Camera is off</p>
         </div>
-        <Dialog open={showSetup} onOpenChange={setShowSetup}>
-          <DialogTrigger asChild>
-            <Button variant="outline">
-              <Settings className="h-4 w-4 mr-2" />
-              Setup Guide
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Setup Instructions</DialogTitle>
-            </DialogHeader>
-            <AppsScriptSetup />
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
@@ -181,7 +133,7 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
           </div>
         )}
       </div>
-      <div className="mt-8 flex gap-4">
+      <div className="mt-8">
         <Button 
           onClick={handleQuickCapture} 
           size="lg" 
@@ -190,20 +142,6 @@ const CameraView = ({ queueNoteForProcessing }: CameraViewProps) => {
         >
           {isVideoReady ? <Camera className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
         </Button>
-        <Dialog open={showSetup} onOpenChange={setShowSetup}>
-          <DialogTrigger asChild>
-            <Button variant="outline" size="lg">
-              <Settings className="h-5 w-5 mr-2" />
-              Setup Guide
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Google Apps Script Setup</DialogTitle>
-            </DialogHeader>
-            <AppsScriptSetup />
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
